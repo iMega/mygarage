@@ -1,0 +1,94 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build linux/amd64
+        run: make build-linux GIT_SHA=${{ github.sha }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mygarage-${{ github.sha }}
+          path: |
+            dist/mygarage-linux-amd64
+            dist/mygarage-linux-amd64.sha256
+          if-no-files-found: error
+
+  # Reported separately: the existing code has open lint findings, which
+  # must not block releases.
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2
+
+  # Blue/green release on the VPS. Enabled by the repository variable
+  # DEPLOY_ENABLED=true once the server is provisioned from mygarage-infra.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mygarage-${{ github.sha }}
+          path: dist
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        # GITHUB_SHA is expanded locally on purpose.
+        run: |
+          # shellcheck disable=SC2029
+          ssh "deploy@$HOST" "rm -rf /opt/mygarage/incoming/$GITHUB_SHA"
+          scp -r dist "deploy@$HOST:/opt/mygarage/incoming/$GITHUB_SHA"
+
+      - name: Switch traffic
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          # shellcheck disable=SC2029
+          ssh "deploy@$HOST" "sudo /opt/mygarage/bin/deploy.sh $GITHUB_SHA"

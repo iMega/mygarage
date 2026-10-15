@@ -1,0 +1,265 @@
+{{define "worktypes"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Работы - myGarage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        {{template "settings_styles" .}}
+        .settings-shell {
+            gap: 32px;
+            width: 100%;
+            max-width: none;
+            margin: 0;
+        }
+        .settings-panel {
+            min-width: 0;
+        }
+        .add-work {
+            padding: 16px;
+            background: #f7f8f9;
+            border: 1px solid #d9dee3;
+            border-radius: 8px;
+        }
+        .work-table th {
+            color: #5d6670;
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .work-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .work-table th:nth-child(1),
+        .work-table td:nth-child(1) {
+            width: 180px;
+        }
+        .work-table th:nth-child(2),
+        .work-table td:nth-child(2) {
+            width: 260px;
+        }
+        .work-table th:nth-child(3),
+        .work-table td:nth-child(3) {
+            width: 300px;
+        }
+        .work-table th:nth-child(4),
+        .work-table td:nth-child(4) {
+            width: 110px;
+        }
+        .work-table th:nth-child(5),
+        .work-table td:nth-child(5) {
+            width: 190px;
+        }
+        .row-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            justify-content: flex-end;
+            white-space: nowrap;
+        }
+        .row-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            padding: 0 10px;
+        }
+        .row-actions * {
+            white-space: nowrap;
+        }
+        .filter-tabs {
+            display: inline-flex;
+            gap: 4px;
+            padding: 3px;
+            background: #eef1f4;
+            border-radius: 8px;
+        }
+        .filter-tabs a {
+            color: #31363b;
+            border-radius: 6px;
+            padding: 6px 10px;
+            text-decoration: none;
+        }
+        .filter-tabs a.active {
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, .08);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    {{template "settings_header" .}}
+
+    <main class="container-fluid px-4">
+        <div class="settings-shell">
+            {{template "settings_sidebar" .}}
+
+            <section class="settings-panel">
+                <h1 class="h3 mb-4">Работы</h1>
+
+                <div class="add-work mb-4">
+                    <h2 class="h5 mb-3">Добавить работу</h2>
+                    <form method="post" action="/work-types">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-2">
+                                <label class="form-label">Категория</label>
+                                <input type="text" name="category"
+                                       class="form-control"
+                                       placeholder="Двигатель">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Название в приложении
+                                </label>
+                                <input type="text" name="name"
+                                       class="form-control"
+                                       placeholder="Масляный фильтр ДВС"
+                                       required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Название для счёта
+                                </label>
+                                <input type="text" name="invoice_name_en"
+                                       class="form-control"
+                                       placeholder="Engine oil filter">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Цена без VAT</label>
+                                <input type="text" name="default_price"
+                                       class="form-control"
+                                       placeholder="0.00">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit"
+                                        class="btn btn-primary w-100">
+                                    Добавить
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h2 class="h5 mb-1">Список работ</h2>
+                        <div class="text-muted small">
+                            Название для счёта используется в печатном счёте.
+                            Работы без категории не отображаются в форме
+                            ремонта.
+                        </div>
+                    </div>
+                    <div class="filter-tabs" aria-label="Фильтр работ">
+                        <a href="/work-types"
+                           class="{{if eq .Show "active"}}active{{end}}">
+                            Активные
+                        </a>
+                        <a href="/work-types?show=hidden"
+                           class="{{if eq .Show "hidden"}}active{{end}}">
+                            Скрытые
+                        </a>
+                        <a href="/work-types?show=uncategorized"
+                           class="{{if eq .Show "uncategorized"}}active{{end}}">
+                            Без категории
+                        </a>
+                        <a href="/work-types?show=all"
+                           class="{{if eq .Show "all"}}active{{end}}">
+                            Все
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 work-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">Категория</th>
+                                <th>Название в приложении</th>
+                                <th>Название для счёта</th>
+                                <th style="width: 120px;">Цена</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range $index, $wt := .WorkTypes}}
+                            <tr>
+                                <td>
+                                    <form id="workType{{$wt.ID}}"
+                                          method="post"
+                                          action="/work-types/{{$wt.ID}}?show={{$.Show}}"></form>
+                                    <input name="category"
+                                           class="form-control form-control-sm"
+                                           value="{{$wt.Category}}"
+                                           form="workType{{$wt.ID}}">
+                                </td>
+                                <td>
+                                    <input name="name"
+                                           class="form-control form-control-sm"
+                                           value="{{$wt.Name}}"
+                                           form="workType{{$wt.ID}}">
+                                </td>
+                                <td>
+                                    <input name="invoice_name_en"
+                                           class="form-control form-control-sm"
+                                           value="{{$wt.InvoiceNameEN}}"
+                                           form="workType{{$wt.ID}}">
+                                </td>
+                                <td>
+                                    <input name="default_price"
+                                           class="form-control form-control-sm"
+                                           value="{{$wt.DefaultPrice}}"
+                                           form="workType{{$wt.ID}}">
+                                </td>
+                                <td>
+                                    <div class="row-actions">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            form="workType{{$wt.ID}}">
+                                        Сохранить
+                                    </button>
+                                    {{if and $wt.IsActive (ne $index 0)}}
+                                    <form method="post"
+                                          action="/work-types/{{$wt.ID}}/move-up?show={{$.Show}}"
+                                          class="d-inline">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                title="Переместить вверх">
+                                            ↑
+                                        </button>
+                                    </form>
+                                    {{end}}
+                                    {{if $wt.IsActive}}
+                                    <form method="post"
+                                          action="/work-types/{{$wt.ID}}/disable?show={{$.Show}}"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Скрыть работу?')">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-secondary">
+                                            Скрыть
+                                        </button>
+                                    </form>
+                                    {{else}}
+                                    <form method="post"
+                                          action="/work-types/{{$wt.ID}}/enable?show={{$.Show}}"
+                                          class="d-inline">
+                                        <button type="submit"
+                                                class="btn btn-sm btn-outline-secondary">
+                                            Вернуть
+                                        </button>
+                                    </form>
+                                    {{end}}
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+</html>
+{{end}}

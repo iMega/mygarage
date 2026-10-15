@@ -1,0 +1,740 @@
+{{define "documents"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Документы - {{.VehiclePlate}}</title>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        :root {
+            --page-width: 180mm;
+            --qty-width: 22mm;
+            --rate-width: 18mm;
+            --euro-width: 18mm;
+            --cent-width: 14mm;
+            --line: 0.3mm solid #1f2a2d;
+        }
+        * { box-sizing: border-box; }
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #eee;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            line-height: 1.25;
+        }
+        .print-toolbar {
+            height: 52px;
+            padding: 0 16px;
+            background: #1f2428;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .print-toolbar-title { font-weight: 600; }
+        .print-toolbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .toolbar-button {
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            font: inherit;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toolbar-button.primary {
+            border-color: #0d6efd;
+            background: #0d6efd;
+            color: #fff;
+        }
+        .print-preview {
+            min-height: calc(100vh - 52px);
+            padding: 16px 0;
+        }
+        .document-page {
+            margin: 0 auto 16px;
+            background: #fff;
+            break-after: page;
+            page-break-after: always;
+        }
+        .document-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+        }
+
+        .certificate-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 38mm 7mm 0;
+            overflow: hidden;
+        }
+        .certificate { width: 100%; }
+        h1 {
+            margin: 0 0 22px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1;
+            font-weight: 700;
+        }
+        .bold { font-weight: 700; }
+        .block { margin-top: 10px; }
+        .compact { margin-top: 6px; }
+        .line-field {
+            display: inline-block;
+            min-height: 18px;
+            padding: 0 4px;
+            border-bottom: 1px solid #000;
+            vertical-align: bottom;
+        }
+        .full-line-field {
+            display: block;
+            min-height: 20px;
+            padding: 0 4px;
+            border-bottom: 1px solid #000;
+        }
+        .full-line {
+            width: 100%;
+            border-bottom: 1px solid #000;
+            height: 20px;
+        }
+        .registry-row {
+            display: grid;
+            grid-template-columns: auto 65mm;
+            column-gap: 8mm;
+            margin-top: 4px;
+        }
+        .registry-lines { width: 65mm; }
+        .registry-lines .line-field,
+        .registry-lines .full-line { width: 100%; }
+        .confirmation-block {
+            margin-top: 12px;
+            font-weight: 700;
+        }
+        .plate-row,
+        .certificate-invoice-row {
+            display: grid;
+            grid-template-columns: auto 64mm;
+            column-gap: 4mm;
+            align-items: end;
+        }
+        .certificate-invoice-row {
+            grid-template-columns: auto 52mm;
+        }
+        .pre-line { white-space: pre-line; }
+        .description-box {
+            min-height: 46px;
+            max-height: 54px;
+            overflow: hidden;
+            max-width: 155mm;
+            padding: 7px 0 0;
+            font-size: 13px;
+            line-height: 1.2;
+            text-align: left;
+            white-space: normal;
+        }
+        .lined-text {
+            position: relative;
+            min-height: 46px;
+            padding-top: 2px;
+            overflow: hidden;
+        }
+        .lined-text::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(
+                    to bottom,
+                    transparent 19px,
+                    #000 19px,
+                    #000 20px,
+                    transparent 20px
+                );
+            background-size: 100% 20px;
+            pointer-events: none;
+        }
+        .lined-text .pre-line {
+            position: relative;
+            z-index: 1;
+            padding: 0 4px;
+            font-size: 13px;
+            line-height: 20px;
+        }
+        .notes-block .lined-text { min-height: 62px; }
+        .footer-signatures {
+            display: grid;
+            grid-template-columns: 1fr .45fr .55fr;
+            column-gap: 24mm;
+            align-items: end;
+            margin-top: 18px;
+        }
+        .signature-slot,
+        .date-slot,
+        .stamp-slot {
+            position: relative;
+            min-height: 42mm;
+            text-align: center;
+        }
+        .signature-line,
+        .date-line,
+        .stamp-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 18px;
+            min-height: 18px;
+            border-bottom: 1px solid #000;
+        }
+        .date-line {
+            padding-top: 2px;
+            font-weight: 700;
+        }
+        .slot-label {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            font-size: 12px;
+        }
+        .signature-image {
+            position: absolute;
+            left: 20mm;
+            bottom: 30px;
+            width: 45mm;
+            max-height: 28mm;
+            object-fit: contain;
+        }
+        .stamp-image {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            width: 55mm;
+            max-height: 30mm;
+            object-fit: contain;
+        }
+        .stamp-text {
+            position: absolute;
+            left: 50%;
+            bottom: 28px;
+            width: 66mm;
+            transform: translateX(-50%);
+            color: #003b8f;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.15;
+            text-align: center;
+        }
+
+        .invoice-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 14mm 15mm 12mm;
+            overflow: hidden;
+            color: #1f2a2d;
+            font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            height: 30mm;
+        }
+        .company {
+            width: 100mm;
+            text-align: center;
+        }
+        .company-name {
+            font-size: 18pt;
+            font-weight: 700;
+            line-height: 1.05;
+            text-transform: uppercase;
+        }
+        .company-job {
+            font-size: 12pt;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+        .company-address {
+            font-size: 10pt;
+            line-height: 1.15;
+            white-space: pre-line;
+        }
+        .company-phone {
+            font-size: 11pt;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .invoice-document {
+            width: 70mm;
+            text-align: center;
+        }
+        .document-title {
+            font-size: 17pt;
+            font-weight: 700;
+            text-decoration: underline;
+            line-height: 1.05;
+        }
+        .tax-lines {
+            margin-top: 5mm;
+            font-size: 10pt;
+        }
+        .invoice-number {
+            margin-top: 7mm;
+            display: flex;
+            justify-content: center;
+            gap: 8mm;
+            align-items: baseline;
+            font-size: 20pt;
+            letter-spacing: 2px;
+        }
+        .invoice-number span:first-child {
+            font-size: 17pt;
+            letter-spacing: 0;
+        }
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 26mm;
+        }
+        .meta-left { width: 96mm; }
+        .meta-row {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 2mm;
+        }
+        .meta-label {
+            width: 19mm;
+            font-size: 9pt;
+            line-height: 1;
+        }
+        .meta-line {
+            flex: 1;
+            border-bottom: 0.3mm dotted #1f2a2d;
+            min-height: 4mm;
+            padding: 0 1.5mm .4mm;
+            font-size: 11pt;
+            line-height: 1;
+        }
+        .payment-caption {
+            width: 55mm;
+            text-align: center;
+            font-size: 10pt;
+            line-height: 1.1;
+            margin-bottom: 1mm;
+        }
+        .invoice-table {
+            width: var(--page-width);
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .col-qty { width: var(--qty-width); }
+        .col-rate { width: var(--rate-width); }
+        .col-euro { width: var(--euro-width); }
+        .col-cent { width: var(--cent-width); }
+        .col-description {
+            width: calc(
+                var(--page-width)
+                - var(--qty-width)
+                - var(--rate-width)
+                - var(--euro-width)
+                - var(--cent-width)
+            );
+        }
+        .invoice-table th,
+        .invoice-table td {
+            border: var(--line);
+            padding: 0 2mm;
+            vertical-align: middle;
+        }
+        .invoice-table th {
+            height: 9mm;
+            text-align: center;
+            font-weight: 700;
+            font-size: 11pt;
+            line-height: 1;
+        }
+        .invoice-table td {
+            height: 11mm;
+            font-size: 12pt;
+        }
+        .qty,
+        .rate,
+        .euro,
+        .cent { text-align: center; }
+        .description { text-align: left; }
+        .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: var(--page-width);
+        }
+        .responsible {
+            position: relative;
+            width: 55mm;
+            padding-top: 11mm;
+            font-size: 11pt;
+            font-weight: 600;
+            line-height: 1.05;
+            text-align: left;
+        }
+        .responsible-mileage {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 3mm;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .responsible-signature {
+            position: absolute;
+            left: 0;
+            bottom: 8mm;
+            width: 45mm;
+            max-height: 28mm;
+            object-fit: contain;
+        }
+        .invoice-table .total-row td {
+            height: 10mm;
+            font-size: 12pt;
+            font-weight: 700;
+        }
+        .invoice-table .total-label {
+            border: none;
+            text-align: right;
+            padding-right: 3mm;
+        }
+        .invoice-table .total-euro,
+        .invoice-table .total-cent { text-align: center; }
+        .customer-signature {
+            width: 77mm;
+            margin-left: auto;
+            margin-top: 11mm;
+            text-align: center;
+            font-size: 11pt;
+            font-weight: 600;
+            line-height: 1.05;
+        }
+        @media print {
+            body { background: #fff; }
+            .print-toolbar { display: none !important; }
+            .print-preview {
+                padding: 0;
+                background: #fff;
+            }
+            .document-page {
+                margin: 0;
+                break-after: page;
+                page-break-after: always;
+            }
+            .document-page:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="print-toolbar">
+        <div class="print-toolbar-title">Предпросмотр документов</div>
+        <div class="print-toolbar-actions">
+            <button type="button"
+                    class="toolbar-button primary"
+                    onclick="window.print()">
+                Печать
+            </button>
+            <a class="toolbar-button" href="/vehicles/{{.Vehicle.ID}}">
+                Назад
+            </a>
+        </div>
+    </header>
+
+    <main class="print-preview">
+        <section class="certificate-page document-page">
+            <section class="certificate">
+                <h1>ΒΕΒΑΙΩΣΗ</h1>
+
+                <section class="technician-block">
+                    <div class="bold">Με την παρούσα εγώ ο/η</div>
+                    <div class="full-line-field">
+                        {{.TechnicianName}}
+                    </div>
+
+                    <div class="bold compact">
+                        που κατέχω άδεια τεχνίτη οχημάτων ειδικότητας
+                    </div>
+                    <div class="line-field" style="width: 125mm;">
+                        {{.TechnicianSpeciality}}
+                    </div>
+
+                    <div class="registry-row">
+                        <div class="bold">με αριθμό μητρώου</div>
+                        <div class="registry-lines">
+                            <div class="line-field">
+                                {{.TechnicianRegistryNumber}}
+                            </div>
+                            <div class="full-line"></div>
+                            <div class="full-line"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="confirmation-block">
+                    Βεβαιώνω όπ.
+                </section>
+
+                <section class="section-alpha block">
+                    <div>
+                        α) Έχω συμπληρώσει την
+                        συντήρηση/επιδιόρθωση του οχήματος/εξαρτήματος
+                        με αριθμό
+                    </div>
+                    <div class="plate-row">
+                        <div>εγγραφής:</div>
+                        <div class="line-field">{{.VehiclePlate}}</div>
+                    </div>
+                </section>
+
+                <section class="section-beta block">
+                    <div>(β) Εξαρτήματα που έχουν χρησιμοποιηθεί:</div>
+                    <div class="certificate-invoice-row">
+                        <div>Σύντομη περιγραφή /Τιμολόγιο Αρ</div>
+                        <div class="line-field">{{.InvoiceNumber}}</div>
+                    </div>
+
+                    <div class="description-box">
+                        {{.WorkDescription}}
+                    </div>
+                </section>
+
+                <section class="section-gamma block">
+                    <div>
+                        (γ) Έχω συμπληρώσει την
+                        εγκατάσταση/συντήρηση/επιδιόρθωση συστήματος
+                    </div>
+                    <div class="plate-row">
+                        <div>
+                            υγραεριοκίνησης σε όχημα με αριθμό εγγραφής:
+                        </div>
+                        <div class="line-field">{{.GasVehiclePlate}}</div>
+                    </div>
+                    <div class="bold compact">Σύντομη περιγραφή:</div>
+                    <div class="lined-text" contenteditable="true">
+                        <div class="pre-line">{{.GasDescription}}</div>
+                    </div>
+                </section>
+
+                <section class="notes-block block">
+                    <div class="bold">Παρατηρήσεις / Προειδοποιήσεις:</div>
+                    <div class="lined-text" contenteditable="true">
+                        <div class="pre-line">{{.Notes}}</div>
+                    </div>
+                </section>
+
+                <section class="footer-signatures">
+                    <div class="signature-slot">
+                        {{if .SignatureImageURL}}
+                        <img class="signature-image"
+                             src="{{.SignatureImageURL}}"
+                             alt="Signature">
+                        {{end}}
+                        <div class="signature-line"></div>
+                        <div class="slot-label">Υπογραφή</div>
+                    </div>
+
+                    <div class="date-slot">
+                        <div class="date-line">{{.DocumentDate}}</div>
+                        <div class="slot-label">Ημερομηνία</div>
+                    </div>
+
+                    <div class="stamp-slot">
+                        {{if .StampImageURL}}
+                        <img class="stamp-image"
+                             src="{{.StampImageURL}}"
+                             alt="Stamp">
+                        {{else}}
+                        <div class="stamp-text">
+                            <strong>{{.TechnicianName}}</strong><br>
+                            Αρ. Μητρώου: {{.TechnicianRegistryNumber}}<br>
+                            ΦΠΑ: {{.Company.FPANumber}}<br>
+                            Τηλ.: {{.Company.Phone}}
+                        </div>
+                        {{end}}
+                        <div class="stamp-line"></div>
+                        <div class="slot-label">Σφραγίδα</div>
+                    </div>
+                </section>
+            </section>
+        </section>
+
+        {{$root := .}}
+        {{range .InvoiceCopies}}
+        {{with $root}}
+        <section class="invoice-page document-page">
+            <header class="invoice-header">
+                <div class="company">
+                    <div class="company-name">
+                        {{.Company.Name}}
+                    </div>
+                    <div class="company-job">
+                        {{.Company.TechnicianSpeciality}}
+                    </div>
+                    <div class="company-address">
+                        {{.Company.Address}}
+                    </div>
+                    <div class="company-phone">
+                        {{if .Company.Phone}}Τηλ: {{.Company.Phone}}{{end}}
+                    </div>
+                </div>
+
+                <div class="invoice-document">
+                    <div class="document-title">
+                        <div>ΤΙΜΟΛΟΓΙΟ</div>
+                        <div>INVOICE</div>
+                    </div>
+                    <div class="tax-lines">
+                        <div>
+                            ΦΠΑ:
+                            {{.Company.FPANumber}}
+                        </div>
+                        <div>
+                            ΑΦΤ:
+                            {{.Company.AFTNumber}}
+                        </div>
+                    </div>
+                    <div class="invoice-number">
+                        <span>Nº</span>
+                        <span>{{.Invoice.PrintNumber}}</span>
+                    </div>
+                </div>
+            </header>
+
+            <section class="invoice-meta">
+                <div class="meta-left">
+                    <div class="meta-row">
+                        <div class="meta-label">ΗΜΕΡΟΜΗΝΙΑ:<br>DATE</div>
+                        <div class="meta-line">
+                            {{.Repair.RepairDate.Format "02.01.2006"}}
+                        </div>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-label">Ο Κος:<br>Mr</div>
+                        <div class="meta-line">{{.Vehicle.PlateNumber}}</div>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-label">ΕΚ:<br>FROM</div>
+                        <div class="meta-line">{{.Company.Address}}</div>
+                    </div>
+                </div>
+
+                <div class="payment-caption">
+                    <div>ΕΠΙ ΠΙΣΤΩΣΕΙ - ΤΟΙΣ ΜΕΤΡΗΤΟΙΣ</div>
+                    <div>ON CREDIT - CASH</div>
+                </div>
+            </section>
+
+            <table class="invoice-table">
+                <colgroup>
+                    <col class="col-qty">
+                    <col class="col-description">
+                    <col class="col-rate">
+                    <col class="col-euro">
+                    <col class="col-cent">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="qty">ΠΟΣΟΤΗΣ<br>QUANTITY</th>
+                        <th class="description">
+                            ΠΕΡΙΓΡΑΦΗ - DESCRIPTION
+                        </th>
+                        <th class="rate">@</th>
+                        <th class="euro">€</th>
+                        <th class="cent">CENT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .InvoiceRows}}
+                    <tr class="item-row">
+                        <td class="qty">{{.Quantity}}</td>
+                        <td class="description">{{.Name}}</td>
+                        <td class="rate">{{.Rate}}</td>
+                        <td class="euro">{{.Euro}}</td>
+                        <td class="cent">{{.Cent}}</td>
+                    </tr>
+                    {{end}}
+                    <tr class="total-row">
+                        <td class="total-label" colspan="3">
+                            ΣΥΝΟΛΟ / SUB TOTAL €
+                        </td>
+                        <td class="total-euro">{{.Invoice.SubtotalEuro}}</td>
+                        <td class="total-cent">{{.Invoice.SubtotalCent}}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="total-label" colspan="3">
+                            Φ.Π.Α. VAT {{.VATRate}} % €
+                        </td>
+                        <td class="total-euro">{{.Invoice.VATEuro}}</td>
+                        <td class="total-cent">{{.Invoice.VATCent}}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="total-label" colspan="3">
+                            ΟΛΙΚΟΝ / GRAND TOTAL €
+                        </td>
+                        <td class="total-euro">{{.Invoice.TotalEuro}}</td>
+                        <td class="total-cent">{{.Invoice.TotalCent}}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <section class="bottom">
+                <div class="responsible">
+                    {{if .SignatureImageURL}}
+                    <img class="responsible-signature"
+                         src="{{.SignatureImageURL}}"
+                         alt="Signature">
+                    {{end}}
+                    <div>Ο ΥΠΕΥΘΥΝΟΣ</div>
+                    <div>THE RESPONSIBLE</div>
+                    {{if .Repair.Mileage}}
+                    <div class="responsible-mileage">
+                        ΕΝΔΕΙΞΗ ΟΔΟΜΕΤΡΟΥ / MILEAGE: {{.Repair.Mileage}}
+                    </div>
+                    {{end}}
+                </div>
+
+                <div class="customer-signature">
+                    <div>ΠΕΛΑΤΗΣ ή ΠΑΡΑΛΗΠΤΗΣ</div>
+                    <div>CUSTOMER - RECEIVER</div>
+                </div>
+            </section>
+        </section>
+        {{end}}
+        {{end}}
+    </main>
+
+    {{if .AutoPrint}}
+    <script>
+        window.addEventListener("load", function() {
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        });
+    </script>
+    {{end}}
+</body>
+</html>
+{{end}}

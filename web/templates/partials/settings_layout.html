@@ -1,0 +1,132 @@
+{{define "settings_styles"}}
+        body {
+            background: #f5f6f7;
+        }
+        .app-nav { padding: 8px 0; }
+        .app-nav .navbar-brand {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .app-nav .nav-search {
+            width: min(34vw, 360px);
+            min-width: 280px;
+        }
+        .app-nav .form-control,
+        .app-nav .btn {
+            border-radius: 6px;
+            font-size: .95rem;
+            height: 36px;
+        }
+        .app-nav .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid rgba(255, 255, 255, .75);
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            font: inherit;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .nav-button:hover {
+            color: #fff;
+            border-color: #fff;
+        }
+        .settings-shell {
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            gap: 24px;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+        .settings-side {
+            align-self: start;
+            position: sticky;
+            top: 20px;
+        }
+        .settings-side .nav-link {
+            color: #31363b;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+        .settings-side .nav-link.active {
+            background: #212529;
+            color: #fff;
+        }
+        .settings-panel {
+            background: #fff;
+            border: 1px solid #d9dee3;
+            border-radius: 8px;
+            padding: 24px;
+        }
+{{end}}
+
+{{define "settings_header"}}
+    <nav class="navbar navbar-dark bg-dark app-nav mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">myGarage</a>
+            <form action="/vehicles/search" method="get"
+                  class="mx-auto nav-search">
+                <label class="visually-hidden" for="vehicleSearch">
+                    Поиск автомобиля
+                </label>
+                <div class="input-group">
+                    <input type="text" name="plate"
+                           id="vehicleSearch"
+                           class="form-control text-uppercase"
+                           oninput="this.value = this.value.toUpperCase()"
+                           placeholder="Номер автомобиля">
+                    <button class="btn btn-primary" type="submit">
+                        Найти
+                    </button>
+                </div>
+            </form>
+            <div class="nav-actions">
+                <a href="/settings/company" class="nav-button">
+                    Настройки
+                </a>
+                {{if not daemon}}
+                <form action="/shutdown" method="post" class="d-inline"
+                      onsubmit="return confirm('Завершить работу приложения?')">
+                    <button type="submit" class="nav-button">
+                        Выход
+                    </button>
+                </form>
+                {{end}}
+            </div>
+        </div>
+    </nav>
+{{end}}
+
+{{define "settings_sidebar"}}
+            <aside class="settings-side">
+                <h2 class="h5 mb-3">Настройки</h2>
+                <nav class="nav flex-column gap-1">
+                    <a href="/settings/company"
+                       class="nav-link {{if eq .SettingsPage "documents"}}active{{end}}">
+                        Документы
+                    </a>
+                    <a href="/work-types"
+                       class="nav-link {{if eq .SettingsPage "works"}}active{{end}}">
+                        Работы
+                    </a>
+                    <a href="/settings/data"
+                       class="nav-link {{if eq .SettingsPage "data"}}active{{end}}">
+                        Данные
+                    </a>
+                    <a href="/settings/access"
+                       class="nav-link {{if eq .SettingsPage "access"}}active{{end}}">
+                        Доступы
+                    </a>
+                </nav>
+            </aside>
+{{end}}

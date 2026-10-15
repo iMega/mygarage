@@ -1,0 +1,60 @@
+# Binaries
+mygarage
+garage-journal
+*.exe
+*.dll
+*.so
+*.dylib
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Backups
+backups/
+
+# Distribution
+dist/
+
+# Config (keep example)
+init.sql
+
+# Go build artifacts
+*.test
+*.out
+/bin/
+/pkg/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+# CocoIndex Code (ccc)
+/.cocoindex_code/
+
+# Customer data and generated init dumps
+scripts/data.sql
+*.sql
+!db/**/*.sql
+
+# Secrets and local config
+config.json
+access/
+.env
+.env.*
+*client*.json
+*token*.json
+google-*.json
+*.pem
+*.key
+
+# Local tooling
+.claude/settings.local.json
+.golangci.bck.yml

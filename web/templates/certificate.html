@@ -1,0 +1,456 @@
+{{define "certificate"}}
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>Βεβαίωση - {{.VehiclePlate}}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            line-height: 1.25;
+        }
+
+        .print-toolbar {
+            height: 52px;
+            padding: 0 16px;
+            background: #1f2428;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .print-toolbar-title {
+            font-weight: 600;
+        }
+
+        .print-toolbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toolbar-button {
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            font: inherit;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toolbar-button.primary {
+            border-color: #0d6efd;
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .print-preview {
+            background: #eee;
+            min-height: calc(100vh - 52px);
+            padding: 16px 0;
+        }
+
+        .certificate-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 38mm 7mm 0;
+            overflow: hidden;
+        }
+
+        .certificate {
+            width: 100%;
+        }
+
+        h1 {
+            margin: 0 0 22px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1;
+            font-weight: 700;
+        }
+
+        .bold {
+            font-weight: 700;
+        }
+
+        .block {
+            margin-top: 10px;
+        }
+
+        .compact {
+            margin-top: 6px;
+        }
+
+        .line-field {
+            display: inline-block;
+            min-height: 18px;
+            padding: 0 4px;
+            border-bottom: 1px solid #000;
+            vertical-align: bottom;
+        }
+
+        .full-line-field {
+            display: block;
+            min-height: 20px;
+            padding: 0 4px;
+            border-bottom: 1px solid #000;
+        }
+
+        .full-line {
+            width: 100%;
+            border-bottom: 1px solid #000;
+            height: 20px;
+        }
+
+        .registry-row {
+            display: grid;
+            grid-template-columns: auto 65mm;
+            column-gap: 8mm;
+            margin-top: 4px;
+        }
+
+        .registry-lines {
+            width: 65mm;
+        }
+
+        .registry-lines .line-field,
+        .registry-lines .full-line {
+            width: 100%;
+        }
+
+        .confirmation-block {
+            margin-top: 12px;
+            font-weight: 700;
+        }
+
+        .plate-row,
+        .invoice-row {
+            display: grid;
+            grid-template-columns: auto 64mm;
+            column-gap: 4mm;
+            align-items: end;
+        }
+
+        .invoice-row {
+            grid-template-columns: auto 52mm;
+        }
+
+        .pre-line {
+            white-space: pre-line;
+        }
+
+        .description-box {
+            min-height: 46px;
+            max-height: 54px;
+            overflow: hidden;
+            max-width: 155mm;
+            padding: 7px 0 0;
+            font-size: 13px;
+            line-height: 1.2;
+            text-align: left;
+            white-space: normal;
+        }
+
+        .lined-text {
+            position: relative;
+            min-height: 46px;
+            padding-top: 2px;
+            overflow: hidden;
+        }
+
+        .lined-text::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(
+                    to bottom,
+                    transparent 19px,
+                    #000 19px,
+                    #000 20px,
+                    transparent 20px
+                );
+            background-size: 100% 20px;
+            pointer-events: none;
+        }
+
+        .lined-text .pre-line {
+            position: relative;
+            z-index: 1;
+            padding: 0 4px;
+            font-size: 13px;
+            line-height: 20px;
+        }
+
+        .notes-block .lined-text {
+            min-height: 62px;
+        }
+
+        .footer-signatures {
+            display: grid;
+            grid-template-columns: 1fr .45fr .55fr;
+            column-gap: 24mm;
+            align-items: end;
+            margin-top: 18px;
+        }
+
+        .signature-slot,
+        .date-slot,
+        .stamp-slot {
+            position: relative;
+            min-height: 42mm;
+            text-align: center;
+        }
+
+        .signature-line,
+        .date-line,
+        .stamp-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 18px;
+            min-height: 18px;
+            border-bottom: 1px solid #000;
+        }
+
+        .date-line {
+            padding-top: 2px;
+            font-weight: 700;
+        }
+
+        .slot-label {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            font-size: 12px;
+        }
+
+        .signature-image {
+            position: absolute;
+            left: 20mm;
+            bottom: 30px;
+            width: 45mm;
+            max-height: 28mm;
+            object-fit: contain;
+        }
+
+        .stamp-image {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 30px;
+            width: 55mm;
+            max-height: 30mm;
+            object-fit: contain;
+        }
+
+        .stamp-text {
+            position: absolute;
+            left: 50%;
+            bottom: 28px;
+            width: 66mm;
+            transform: translateX(-50%);
+            color: #003b8f;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.15;
+            text-align: center;
+        }
+
+        @media screen {
+            body {
+                background: #eee;
+            }
+
+            .certificate-page {
+                margin: 0 auto;
+                background: #fff;
+            }
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .print-toolbar {
+                display: none !important;
+            }
+
+            .print-preview {
+                padding: 0;
+                background: #fff;
+            }
+
+            .certificate-page {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="print-toolbar">
+        <div class="print-toolbar-title">Предпросмотр документа</div>
+        <div class="print-toolbar-actions">
+            <button type="button"
+                    class="toolbar-button primary"
+                    onclick="window.print()">
+                Печать
+            </button>
+            <a class="toolbar-button" href="/vehicles/{{.Vehicle.ID}}">
+                Назад
+            </a>
+        </div>
+    </header>
+
+    <main class="print-preview">
+    <section class="certificate-page">
+        <section class="certificate">
+            <h1>ΒΕΒΑΙΩΣΗ</h1>
+
+            <section class="technician-block">
+                <div class="bold">Με την παρούσα εγώ ο/η</div>
+                <div class="full-line-field">
+                    {{.TechnicianName}}
+                </div>
+
+                <div class="bold compact">
+                    που κατέχω άδεια τεχνίτη οχημάτων ειδικότητας
+                </div>
+                <div class="line-field" style="width: 125mm;">
+                    {{.TechnicianSpeciality}}
+                </div>
+
+                <div class="registry-row">
+                    <div class="bold">με αριθμό μητρώου</div>
+                    <div class="registry-lines">
+                        <div class="line-field">
+                            {{.TechnicianRegistryNumber}}
+                        </div>
+                        <div class="full-line"></div>
+                        <div class="full-line"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="confirmation-block">
+                Βεβαιώνω όπ.
+            </section>
+
+            <section class="section-alpha block">
+                <div>
+                    α) Έχω συμπληρώσει την
+                    συντήρηση/επιδιόρθωση του οχήματος/εξαρτήματος
+                    με αριθμό
+                </div>
+                <div class="plate-row">
+                    <div>εγγραφής:</div>
+                    <div class="line-field">{{.VehiclePlate}}</div>
+                </div>
+            </section>
+
+            <section class="section-beta block">
+                <div>(β) Εξαρτήματα που έχουν χρησιμοποιηθεί:</div>
+                <div class="invoice-row">
+                    <div>Σύντομη περιγραφή /Τιμολόγιο Αρ</div>
+                    <div class="line-field">{{.InvoiceNumber}}</div>
+                </div>
+
+                <div class="description-box">
+                    {{.WorkDescription}}
+                </div>
+            </section>
+
+            <section class="section-gamma block">
+                <div>
+                    (γ) Έχω συμπληρώσει την
+                    εγκατάσταση/συντήρηση/επιδιόρθωση συστήματος
+                </div>
+                <div class="plate-row">
+                    <div>
+                        υγραεριοκίνησης σε όχημα με αριθμό εγγραφής:
+                    </div>
+                    <div class="line-field">{{.GasVehiclePlate}}</div>
+                </div>
+                <div class="bold compact">Σύντομη περιγραφή:</div>
+                <div class="lined-text" contenteditable="true">
+                    <div class="pre-line">{{.GasDescription}}</div>
+                </div>
+            </section>
+
+            <section class="notes-block block">
+                <div class="bold">Παρατηρήσεις / Προειδοποιήσεις:</div>
+                <div class="lined-text" contenteditable="true">
+                    <div class="pre-line">{{.Notes}}</div>
+                </div>
+            </section>
+
+            <section class="footer-signatures">
+                <div class="signature-slot">
+                    {{if .SignatureImageURL}}
+                    <img class="signature-image"
+                         src="{{.SignatureImageURL}}"
+                         alt="Signature">
+                    {{end}}
+                    <div class="signature-line"></div>
+                    <div class="slot-label">Υπογραφή</div>
+                </div>
+
+                <div class="date-slot">
+                    <div class="date-line">{{.DocumentDate}}</div>
+                    <div class="slot-label">Ημερομηνία</div>
+                </div>
+
+                <div class="stamp-slot">
+                    {{if .StampImageURL}}
+                    <img class="stamp-image"
+                         src="{{.StampImageURL}}"
+                         alt="Stamp">
+                    {{else}}
+                    <div class="stamp-text">
+                        <strong>{{.TechnicianName}}</strong><br>
+                        Αρ. Μητρώου: {{.TechnicianRegistryNumber}}<br>
+                        ΦΠΑ: {{.Company.FPANumber}}<br>
+                        Τηλ.: {{.Company.Phone}}
+                    </div>
+                    {{end}}
+                    <div class="stamp-line"></div>
+                    <div class="slot-label">Σφραγίδα</div>
+                </div>
+            </section>
+        </section>
+    </section>
+    </main>
+    {{if .AutoPrint}}
+    <script>
+        window.addEventListener("load", function() {
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        });
+    </script>
+    {{end}}
+</body>
+</html>
+{{end}}

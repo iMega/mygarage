@@ -1,0 +1,454 @@
+{{define "invoice"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice {{.Invoice.Number}}</title>
+    <style>
+        @page { size: A4 portrait; margin: 0; }
+        :root {
+            --page-width: 180mm;
+            --qty-width: 22mm;
+            --rate-width: 18mm;
+            --euro-width: 18mm;
+            --cent-width: 14mm;
+            --line: 0.3mm solid #1f2a2d;
+        }
+        * { box-sizing: border-box; }
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+            color: #1f2a2d;
+            background: #f2f2f2;
+        }
+        .print-toolbar {
+            height: 52px;
+            padding: 0 16px;
+            background: #1f2428;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .print-toolbar-title {
+            font-weight: 600;
+        }
+        .print-toolbar-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .toolbar-button {
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            font: inherit;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toolbar-button.primary {
+            border-color: #0d6efd;
+            background: #0d6efd;
+            color: #fff;
+        }
+        .print-preview {
+            background: #eee;
+            min-height: calc(100vh - 52px);
+            padding: 16px 0;
+        }
+        .invoice-page {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto 16px;
+            padding: 14mm 15mm 12mm;
+            overflow: hidden;
+            background: white;
+            break-after: page;
+            page-break-after: always;
+        }
+        .invoice-page:last-child {
+            margin-bottom: 0;
+            break-after: auto;
+            page-break-after: auto;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            height: 30mm;
+        }
+        .company {
+            width: 100mm;
+            text-align: center;
+        }
+        .company-name {
+            font-size: 18pt;
+            font-weight: 700;
+            line-height: 1.05;
+            text-transform: uppercase;
+        }
+        .company-job {
+            font-size: 12pt;
+            font-weight: 600;
+            line-height: 1.1;
+        }
+        .company-address {
+            font-size: 10pt;
+            line-height: 1.15;
+            white-space: pre-line;
+        }
+        .company-phone {
+            font-size: 11pt;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .document {
+            width: 70mm;
+            text-align: center;
+        }
+        .document-title {
+            font-size: 17pt;
+            font-weight: 700;
+            text-decoration: underline;
+            line-height: 1.05;
+        }
+        .tax-lines {
+            margin-top: 5mm;
+            font-size: 10pt;
+        }
+        .invoice-number {
+            margin-top: 7mm;
+            display: flex;
+            justify-content: center;
+            gap: 8mm;
+            align-items: baseline;
+            font-size: 20pt;
+            letter-spacing: 2px;
+        }
+        .invoice-number span:first-child {
+            font-size: 17pt;
+            letter-spacing: 0;
+        }
+        .invoice-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 26mm;
+        }
+        .meta-left { width: 96mm; }
+        .meta-row {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 2mm;
+        }
+        .meta-label {
+            width: 19mm;
+            font-size: 9pt;
+            line-height: 1;
+        }
+        .meta-line {
+            flex: 1;
+            border-bottom: 0.3mm dotted #1f2a2d;
+            min-height: 4mm;
+            padding: 0 1.5mm .4mm;
+            font-size: 11pt;
+            line-height: 1;
+        }
+        .payment-caption {
+            width: 55mm;
+            text-align: center;
+            font-size: 10pt;
+            line-height: 1.1;
+            margin-bottom: 1mm;
+        }
+        .invoice-table {
+            width: var(--page-width);
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .col-qty { width: var(--qty-width); }
+        .col-rate { width: var(--rate-width); }
+        .col-euro { width: var(--euro-width); }
+        .col-cent { width: var(--cent-width); }
+        .col-description {
+            width: calc(
+                var(--page-width)
+                - var(--qty-width)
+                - var(--rate-width)
+                - var(--euro-width)
+                - var(--cent-width)
+            );
+        }
+        .invoice-table th,
+        .invoice-table td {
+            border: var(--line);
+            padding: 0 2mm;
+            vertical-align: middle;
+        }
+        .invoice-table th {
+            height: 9mm;
+            text-align: center;
+            font-weight: 700;
+            font-size: 11pt;
+            line-height: 1;
+        }
+        .invoice-table td {
+            height: 11mm;
+            font-size: 12pt;
+        }
+        .qty,
+        .rate,
+        .euro,
+        .cent {
+            text-align: center;
+        }
+        .description { text-align: left; }
+        .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: var(--page-width);
+        }
+        .responsible {
+            position: relative;
+            width: 55mm;
+            padding-top: 11mm;
+            font-size: 11pt;
+            font-weight: 600;
+            line-height: 1.05;
+            text-align: left;
+        }
+        .responsible-mileage {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 3mm;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+        .responsible-signature {
+            position: absolute;
+            left: 0;
+            bottom: 8mm;
+            width: 45mm;
+            max-height: 28mm;
+            object-fit: contain;
+        }
+        .invoice-table .total-row td {
+            height: 10mm;
+            font-size: 12pt;
+            font-weight: 700;
+        }
+        .invoice-table .total-label {
+            border: none;
+            text-align: right;
+            padding-right: 3mm;
+        }
+        .invoice-table .total-euro {
+            text-align: center;
+        }
+        .invoice-table .total-cent {
+            text-align: center;
+        }
+        .customer-signature {
+            width: 77mm;
+            margin-left: auto;
+            margin-top: 11mm;
+            text-align: center;
+            font-size: 11pt;
+            font-weight: 600;
+            line-height: 1.05;
+        }
+        @media print {
+            body { background: white; }
+            .print-toolbar { display: none; }
+            .print-preview { padding: 0; background: white; }
+            .invoice-page {
+                margin: 0;
+                break-after: page;
+                page-break-after: always;
+            }
+            .invoice-page:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="print-toolbar">
+        <div class="print-toolbar-title">Предпросмотр документа</div>
+        <div class="print-toolbar-actions">
+            <button type="button"
+                    class="toolbar-button primary"
+                    onclick="window.print()">
+                Печать
+            </button>
+            <a class="toolbar-button" href="/vehicles/{{.Vehicle.ID}}">
+                Назад
+            </a>
+        </div>
+    </header>
+
+    <main class="print-preview">
+    {{$root := .}}
+    {{range .InvoiceCopies}}
+    {{with $root}}
+    <div class="invoice-page">
+        <header class="invoice-header">
+            <div class="company">
+                <div class="company-name">
+                    {{.Company.Name}}
+                </div>
+                <div class="company-job">{{.Company.TechnicianSpeciality}}</div>
+                <div class="company-address">
+                    {{.Company.Address}}
+                </div>
+                <div class="company-phone">
+                    {{if .Company.Phone}}Τηλ: {{.Company.Phone}}{{end}}
+                </div>
+            </div>
+
+            <div class="document">
+                <div class="document-title">
+                    <div>ΤΙΜΟΛΟΓΙΟ</div>
+                    <div>INVOICE</div>
+                </div>
+                <div class="tax-lines">
+                    <div>
+                        ΦΠΑ:
+                        {{.Company.FPANumber}}
+                    </div>
+                    <div>
+                        ΑΦΤ:
+                        {{.Company.AFTNumber}}
+                    </div>
+                </div>
+                <div class="invoice-number">
+                    <span>Nº</span>
+                    <span>{{.Invoice.PrintNumber}}</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="invoice-meta">
+            <div class="meta-left">
+                <div class="meta-row">
+                    <div class="meta-label">ΗΜΕΡΟΜΗΝΙΑ:<br>DATE</div>
+                    <div class="meta-line">
+                        {{.Repair.RepairDate.Format "02.01.2006"}}
+                    </div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">Ο Κος:<br>Mr</div>
+                    <div class="meta-line">{{.Vehicle.PlateNumber}}</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">ΕΚ:<br>FROM</div>
+                    <div class="meta-line">{{.Company.Address}}</div>
+                </div>
+            </div>
+
+            <div class="payment-caption">
+                <div>ΕΠΙ ΠΙΣΤΩΣΕΙ - ΤΟΙΣ ΜΕΤΡΗΤΟΙΣ</div>
+                <div>ON CREDIT - CASH</div>
+            </div>
+        </section>
+
+        <table class="invoice-table">
+            <colgroup>
+                <col class="col-qty">
+                <col class="col-description">
+                <col class="col-rate">
+                <col class="col-euro">
+                <col class="col-cent">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="qty">ΠΟΣΟΤΗΣ<br>QUANTITY</th>
+                    <th class="description">ΠΕΡΙΓΡΑΦΗ - DESCRIPTION</th>
+                    <th class="rate">@</th>
+                    <th class="euro">€</th>
+                    <th class="cent">CENT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .InvoiceRows}}
+                <tr class="item-row">
+                    <td class="qty">{{.Quantity}}</td>
+                    <td class="description">{{.Name}}</td>
+                    <td class="rate">{{.Rate}}</td>
+                    <td class="euro">{{.Euro}}</td>
+                    <td class="cent">{{.Cent}}</td>
+                </tr>
+                {{end}}
+                <tr class="total-row">
+                    <td class="total-label" colspan="3">
+                        ΣΥΝΟΛΟ / SUB TOTAL €
+                    </td>
+                    <td class="total-euro">{{.Invoice.SubtotalEuro}}</td>
+                    <td class="total-cent">{{.Invoice.SubtotalCent}}</td>
+                </tr>
+                <tr class="total-row">
+                    <td class="total-label" colspan="3">
+                        Φ.Π.Α. VAT {{.VATRate}} % €
+                    </td>
+                    <td class="total-euro">{{.Invoice.VATEuro}}</td>
+                    <td class="total-cent">{{.Invoice.VATCent}}</td>
+                </tr>
+                <tr class="total-row">
+                    <td class="total-label" colspan="3">
+                        ΟΛΙΚΟΝ / GRAND TOTAL €
+                    </td>
+                    <td class="total-euro">{{.Invoice.TotalEuro}}</td>
+                    <td class="total-cent">{{.Invoice.TotalCent}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <section class="bottom">
+            <div class="responsible">
+                {{if .SignatureImageURL}}
+                <img class="responsible-signature"
+                     src="{{.SignatureImageURL}}"
+                     alt="Signature">
+                {{end}}
+                <div>Ο ΥΠΕΥΘΥΝΟΣ</div>
+                <div>THE RESPONSIBLE</div>
+                {{if .Repair.Mileage}}
+                <div class="responsible-mileage">
+                    ΕΝΔΕΙΞΗ ΟΔΟΜΕΤΡΟΥ / MILEAGE: {{.Repair.Mileage}}
+                </div>
+                {{end}}
+            </div>
+
+            <div class="customer-signature">
+                <div>ΠΕΛΑΤΗΣ ή ΠΑΡΑΛΗΠΤΗΣ</div>
+                <div>CUSTOMER - RECEIVER</div>
+            </div>
+        </section>
+    </div>
+    {{end}}
+    {{end}}
+    </main>
+    {{if .AutoPrint}}
+    <script>
+        window.addEventListener("load", function() {
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        });
+    </script>
+    {{end}}
+</body>
+</html>
+{{end}}

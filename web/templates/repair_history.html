@@ -1,0 +1,243 @@
+{{define "repair_history"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>История ремонтов - myGarage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body { height: 100%; }
+        body {
+            background: #f5f6f7;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-wrap { flex: 1 0 auto; }
+        .app-nav { padding: 8px 0; }
+        .app-nav .navbar-brand {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .app-nav .nav-search {
+            width: min(34vw, 360px);
+            min-width: 280px;
+        }
+        .app-nav .form-control,
+        .app-nav .btn {
+            border-radius: 6px;
+            font-size: .95rem;
+            height: 36px;
+        }
+        .app-nav .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            padding: 0 14px;
+            border: 1px solid rgba(255, 255, 255, .75);
+            border-radius: 6px;
+            background: transparent;
+            color: #fff;
+            font: inherit;
+            line-height: 1;
+            text-decoration: none;
+        }
+        .nav-button:hover {
+            color: #fff;
+            border-color: #fff;
+        }
+        .page-content {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding-bottom: 32px;
+        }
+        .history-card {
+            background: #fff;
+            border: 1px solid #d9dee3;
+            border-radius: 8px;
+        }
+        .history-table td,
+        .history-table th {
+            vertical-align: middle;
+        }
+        .history-table.table-hover > tbody > tr:hover > * {
+            --bs-table-bg-state: #dbeafe;
+        }
+        .history-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrap">
+        <nav class="navbar navbar-dark bg-dark app-nav mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">myGarage</a>
+                <form action="/vehicles/search" method="get"
+                      class="mx-auto nav-search">
+                    <label class="visually-hidden" for="vehicleSearch">
+                        Поиск автомобиля
+                    </label>
+                    <div class="input-group">
+                        <input type="text" name="plate"
+                               id="vehicleSearch"
+                               class="form-control text-uppercase"
+                               oninput="this.value = this.value.toUpperCase()"
+                               placeholder="Номер автомобиля">
+                        <button class="btn btn-primary" type="submit">
+                            Найти
+                        </button>
+                    </div>
+                </form>
+                <div class="nav-actions">
+                    <a href="/settings/company" class="nav-button">
+                        Настройки
+                    </a>
+                    {{if not daemon}}
+                    <form action="/shutdown" method="post"
+                          class="d-inline"
+                          onsubmit="return confirm(
+                              'Завершить работу?'
+                          )">
+                        <button type="submit" class="nav-button">
+                            Выход
+                        </button>
+                    </form>
+                    {{end}}
+                </div>
+            </div>
+        </nav>
+
+        <main class="container-fluid px-4">
+            <div class="page-content">
+                <div class="mb-3">
+                    <h2 class="mb-1">История ремонтов</h2>
+                    <div class="text-muted">
+                        Все ремонты от новых к старым ·
+                        всего {{.Total}}
+                    </div>
+                </div>
+
+                <div class="history-card">
+                    {{if .Repairs}}
+                    <div class="table-responsive">
+                        <table class="table table-hover history-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Автомобиль</th>
+                                    <th>Инвойс</th>
+                                    <th>Статус</th>
+                                    <th>Пробег</th>
+                                    <th class="text-end">Сумма</th>
+                                    <th class="text-end">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{range .Repairs}}
+                                {{$invoice := printf "/repairs/%d/invoice" .ID}}
+                                <tr>
+                                    <td>
+                                        {{.RepairDate.Format "02.01.2006"}}
+                                    </td>
+                                    <td>
+                                        <a href="/vehicles/{{.VehicleID}}"
+                                           class="fw-semibold
+                                                  text-decoration-none">
+                                            {{.PlateNumber}}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {{if .HasInvoice}}
+                                        <a href="{{$invoice}}"
+                                           class="text-decoration-none">
+                                            {{.InvoiceNumber}}
+                                        </a>
+                                        {{else}}-{{end}}
+                                    </td>
+                                    <td>{{.StatusLabel}}</td>
+                                    <td>
+                                        {{if .Mileage}}
+                                        {{.Mileage}}
+                                        {{else}}-{{end}}
+                                    </td>
+                                    <td class="text-end">
+                                        {{if .HasInvoice}}
+                                        {{.InvoiceTotal}}
+                                        {{else}}-{{end}}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="history-actions">
+                                            <a href="/repairs/{{.ID}}/edit"
+                                               class="btn btn-outline-primary
+                                                      btn-sm">
+                                                Открыть
+                                            </a>
+                                            {{if .HasInvoice}}
+                                            <a href="{{$invoice}}?print=1&amp;copies=1"
+                                               class="btn btn-outline-secondary
+                                                      btn-sm">
+                                                1 x Счёт
+                                            </a>
+                                            <a href="{{$invoice}}?print=1&amp;copies=2"
+                                               class="btn btn-outline-secondary
+                                                      btn-sm">
+                                                2 x Счёт
+                                            </a>
+                                            {{end}}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{end}}
+                            </tbody>
+                        </table>
+                    </div>
+                    {{else}}
+                    <div class="p-4 text-muted">
+                        Нет записей о ремонтах.
+                    </div>
+                    {{end}}
+                </div>
+
+                {{if gt .Pages 1}}
+                <nav class="d-flex justify-content-between
+                            align-items-center mt-3"
+                     aria-label="Страницы истории">
+                    {{if .HasPrev}}
+                    <a href="/history?page={{.PrevPage}}"
+                       class="btn btn-outline-secondary">
+                        ← Новее
+                    </a>
+                    {{else}}
+                    <span></span>
+                    {{end}}
+                    <span class="text-muted">
+                        Страница {{.Page}} из {{.Pages}}
+                    </span>
+                    {{if .HasNext}}
+                    <a href="/history?page={{.NextPage}}"
+                       class="btn btn-outline-secondary">
+                        Старее →
+                    </a>
+                    {{else}}
+                    <span></span>
+                    {{end}}
+                </nav>
+                {{end}}
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{{end}}

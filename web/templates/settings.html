@@ -1,0 +1,269 @@
+{{define "settings"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Настройки - myGarage</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        {{template "settings_styles" .}}
+        body { padding-bottom: 82px; }
+        .section-title {
+            margin: 0 0 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .number-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-top: 2px;
+            color: #69727c;
+            font-size: .9rem;
+        }
+        .number-preview strong {
+            color: #212529;
+        }
+        .asset-status {
+            color: #69727c;
+            font-size: .9rem;
+        }
+        .asset-status strong {
+            color: #212529;
+        }
+        .settings-actions {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 20;
+            background: #fff;
+            border-top: 1px solid #d9dee3;
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, .04);
+        }
+        .settings-actions-inner {
+            display: flex;
+            justify-content: flex-end;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 12px 0;
+        }
+    </style>
+</head>
+<body>
+    {{template "settings_header" .}}
+
+    <main class="container-fluid px-4">
+        <div class="settings-shell">
+            {{template "settings_sidebar" .}}
+
+            <section class="settings-panel">
+                <form id="settingsForm" method="post"
+                      action="/settings/company">
+                    <h1 class="h3 mb-4">Документы</h1>
+
+                    <h2 class="section-title">Реквизиты мастерской</h2>
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input name="name" class="form-control"
+                               value="{{.Company.Name}}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Адрес</label>
+                        <textarea name="address" class="form-control"
+                                  rows="2">{{.Company.Address}}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                ΦΠΑ / VAT number
+                            </label>
+                            <input name="fpa_number" class="form-control"
+                                   value="{{.Company.FPANumber}}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                ΑΦΤ / Reg. number
+                            </label>
+                            <input name="aft_number" class="form-control"
+                                   value="{{.Company.AFTNumber}}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Телефон</label>
+                            <input name="phone" class="form-control"
+                                   value="{{.Company.Phone}}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Email</label>
+                            <input name="email" class="form-control"
+                                   value="{{.Company.Email}}">
+                        </div>
+                    </div>
+                    <h2 class="section-title">Βεβαίωση</h2>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Имя техника</label>
+                            <input name="technician_name"
+                                   class="form-control"
+                                   value="{{.Company.TechnicianName}}">
+                            <div class="form-text">
+                                Если пусто, используется название мастерской.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Специальность</label>
+                            <input name="technician_speciality"
+                                   class="form-control"
+                                   value="{{.Company.TechnicianSpeciality}}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Номер реестра</label>
+                            <input name="technician_registry_number"
+                                   class="form-control"
+                                   value="{{.Company.TechnicianRegistryNumber}}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Подпись</label>
+                            <div class="asset-status mb-2">
+                                {{if .HasSignature}}
+                                    <strong>Подпись загружена</strong>
+                                    <div>Файл: signature.png</div>
+                                {{else}}
+                                    Подпись не загружена
+                                {{end}}
+                            </div>
+                            <input name="file" type="file"
+                                   accept="image/png,image/jpeg"
+                                   class="form-control mb-2"
+                                   form="signatureUploadForm">
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                        class="btn btn-outline-primary btn-sm"
+                                        form="signatureUploadForm">
+                                    Загрузить подпись
+                                </button>
+                                {{if .HasSignature}}
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm"
+                                            form="signatureDeleteForm">
+                                        Удалить
+                                    </button>
+                                {{end}}
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Штамп</label>
+                            <div class="asset-status mb-2">
+                                {{if .HasStamp}}
+                                    <strong>Штамп загружен</strong>
+                                    <div>Файл: stamp.png</div>
+                                {{else}}
+                                    Штамп не загружен
+                                {{end}}
+                            </div>
+                            <input name="file" type="file"
+                                   accept="image/png,image/jpeg"
+                                   class="form-control mb-2"
+                                   form="stampUploadForm">
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                        class="btn btn-outline-primary btn-sm"
+                                        form="stampUploadForm">
+                                    Загрузить штамп
+                                </button>
+                                {{if .HasStamp}}
+                                    <button type="submit"
+                                            class="btn btn-outline-danger btn-sm"
+                                            form="stampDeleteForm">
+                                        Удалить
+                                    </button>
+                                {{end}}
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="section-title">Налоги</h2>
+                    <div class="row mb-2">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ставка VAT, %</label>
+                            <input name="vat_rate" type="number" min="0"
+                                   class="form-control"
+                                   value="{{.Invoice.VATRate}}">
+                            <div class="form-text">
+                                Используется для расчета VAT в счете.
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="section-title">Нумерация бланков</h2>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Префикс / серия</label>
+                            <input name="prefix" class="form-control"
+                                   value="{{.Invoice.Prefix}}">
+                            <div class="form-text">
+                                Для сброса счетчика задайте новую серию,
+                                например 2026Q2.
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Следующий номер</label>
+                            <input name="next_number" type="number" min="1"
+                                   class="form-control"
+                                   value="{{.Invoice.NextNumber}}">
+                            <div class="form-text">
+                                Если номер занят, сохранится ближайший
+                                свободный.
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Длина номера</label>
+                            <input name="padding" type="number" min="1"
+                                   class="form-control"
+                                   value="{{.Invoice.Padding}}">
+                        </div>
+                    </div>
+                    <div class="number-preview">
+                        <span>
+                            Предпросмотр номера:
+                            <strong>{{.NextInvoiceNumber}}</strong>
+                        </span>
+                        <span>
+                            На бланке печатается:
+                            <strong>{{.PrintInvoiceNumber}}</strong>
+                        </span>
+                        <span>
+                            Будет применено после сохранения настроек.
+                        </span>
+                    </div>
+                </form>
+                <form id="signatureUploadForm" method="post"
+                      action="/settings/assets/signature"
+                      enctype="multipart/form-data"></form>
+                <form id="signatureDeleteForm" method="post"
+                      action="/settings/assets/signature/delete"></form>
+                <form id="stampUploadForm" method="post"
+                      action="/settings/assets/stamp"
+                      enctype="multipart/form-data"></form>
+                <form id="stampDeleteForm" method="post"
+                      action="/settings/assets/stamp/delete"></form>
+            </section>
+        </div>
+    </main>
+
+    <div class="settings-actions">
+        <div class="settings-actions-inner">
+            <button type="submit" form="settingsForm"
+                    class="btn btn-primary">
+                Сохранить
+            </button>
+        </div>
+    </div>
+</body>
+</html>
+{{end}}
