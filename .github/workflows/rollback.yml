@@ -1,0 +1,60 @@
+name: rollback
+
+# Returns production to an already installed release without rebuilding:
+# Actions -> rollback -> Run workflow (also from the GitHub mobile app).
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Release SHA (empty = previous release)
+        type: string
+        default: ""
+
+# Queues behind a running deploy instead of racing it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - name: Validate input
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          [[ $SHA =~ ^([0-9a-f]{40})?$ ]] ||
+            { echo "::error::sha must be empty or a full 40-character commit SHA"; exit 1; }
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Roll back
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          # shellcheck disable=SC2029
+          ssh "deploy@$HOST" "sudo /opt/mygarage/bin/rollback.sh $SHA"
+
+      - name: Release state
+        if: always()
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          {
+            echo '```'
+            ssh "deploy@$HOST" "sudo /opt/mygarage/bin/status.sh"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
