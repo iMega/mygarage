@@ -472,7 +472,7 @@ func TestHomeQueueAndMarkPaid(t *testing.T) {
 
 	body := assertPageContains(
 		t, r, "/",
-		"Сегодня", "(история)", `href="/history"`,
+		"1111", "(история)", `href="/history"`,
 		"ABC123", "119.00",
 		"table-hover",
 		"Βεβαίωση", "1 x Счёт", "2 x Счёт", "Документы",
