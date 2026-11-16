@@ -225,8 +225,10 @@
                                        class="fw-semibold text-decoration-none">
                                         {{.Plate}}
                                     </a>
-                                    {{else}}
+                                    {{else if .Plate}}
                                     <span class="fw-semibold">{{.Plate}}</span>
+                                    {{else}}
+                                    <span class="fw-semibold">{{.Title}}</span>
                                     {{end}}
                                 </td>
                                 <td class="appointment-time">{{.Time}}</td>

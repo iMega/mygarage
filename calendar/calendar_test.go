@@ -371,6 +371,43 @@ func TestAgendaToday_UnknownVehicle_UsesCompactPlate(t *testing.T) {
 	}
 }
 
+func TestAgendaToday_TitleWithoutPlate_ShowsTitle(t *testing.T) {
+	database := calendarDB(t)
+	defer database.Close()
+	if err := SaveSettings(database, true, "garage@example.test"); err != nil {
+		t.Fatalf("save settings: %v", err)
+	}
+	now := time.Date(2026, 10, 19, 8, 0, 0, 0, time.Local)
+	agenda := &Agenda{
+		db: database,
+		reader: fixedReader{events: []event{{
+			Title: "LEKSUS SERVIS",
+			Start: time.Date(
+				2026, 10, 19, 9, 0, 0, 0, time.Local,
+			),
+		}}},
+		now: func() time.Time { return now },
+	}
+
+	visits, err := agenda.Today(context.Background())
+	if err != nil {
+		t.Fatalf("load agenda: %v", err)
+	}
+	if len(visits) != 1 {
+		t.Fatalf("expected one visit, got %d", len(visits))
+	}
+	actual := visits[0]
+	if actual.Plate != "" || actual.Known {
+		t.Fatalf("expected visit without vehicle, got %+v", actual)
+	}
+	if actual.Title != "LEKSUS SERVIS" {
+		t.Fatalf("expected event title, got %s", actual.Title)
+	}
+	if actual.CreateURL != "/repairs/new?date=2026-10-19" {
+		t.Fatalf("expected create URL without plate, got %s", actual.CreateURL)
+	}
+}
+
 func credentialsJSON(t *testing.T, tokenURI string) []byte {
 	t.Helper()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)

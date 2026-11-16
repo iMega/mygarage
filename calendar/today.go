@@ -12,6 +12,7 @@ import (
 )
 
 type Visit struct {
+	Title       string
 	Plate       string
 	Time        string
 	Date        string
@@ -67,16 +68,23 @@ func (a *Agenda) Today(ctx context.Context) ([]Visit, error) {
 	visits := make([]Visit, 0, len(events))
 	for _, item := range events {
 		plate := plateFromTitle(item.Title)
-		if plate == "" {
-			continue
-		}
 		visit := Visit{
+			Title: item.Title,
 			Plate: plate,
 			Time:  item.Start.In(now.Location()).Format("15:04"),
 			Date:  from.Format("2006-01-02"),
 		}
 		if item.AllDay {
 			visit.Time = "Весь день"
+		}
+		if plate == "" {
+			// Without a plate the event cannot be matched to a vehicle or
+			// repair, so it stays listed and the form starts without a plate.
+			query := url.Values{}
+			query.Set("date", visit.Date)
+			visit.CreateURL = "/repairs/new?" + query.Encode()
+			visits = append(visits, visit)
+			continue
 		}
 		vehicle, err := store.FindVehicleByCompactPlate(
 			a.db, plate,
